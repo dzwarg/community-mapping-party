@@ -41,9 +41,32 @@ body { margin: 0; padding: 0; }
 			ele:evt.coords.altitude || 0,
 			time:(new Date()).toUTCString()
 		});
+		console.log(`logged ${buffer.length} track points`)
 	});
 
-	function download(filename, track) {
+	function download(filename) {
+		const track = `<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+
+	<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" creator="dzwarg/community-mapping-party" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd">
+	  <metadata>
+		<link href="http://dzwarg.github.io/community-mapping-party">
+		  <text>Community Mapping Party</text>
+		</link>
+		<time>${(new Date()).toUTCString()}</time>
+	  </metadata>
+	  <trk>
+		<name>Simple GPX Document</name>
+		<trkseg>
+		  ${buffer.map(function (item) {
+			return `<trkpt lat="${item.lat}" lon="${item.lon}">
+			<ele>${item.ele}</ele>
+			<time>${item.time}</time>
+		  </trkpt>`;
+		  }).join('')}
+		</trkseg>
+	  </trk>
+	</gpx>`
+
 	  var element = document.createElement('a');
 	  element.setAttribute('href', 'data:application/gpx+xml;charset=utf-8,' + encodeURIComponent(track));
 	  element.setAttribute('download', filename);
@@ -56,28 +79,6 @@ body { margin: 0; padding: 0; }
 	  document.body.removeChild(element);
 	}
 
-	const track = `<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-
-<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" creator="dzwarg/community-mapping-party" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd">
-  <metadata>
-    <link href="http://dzwarg.github.io/community-mapping-party">
-      <text>Community Mapping Party</text>
-    </link>
-    <time>${(new Date()).toUTCString()}</time>
-  </metadata>
-  <trk>
-    <name>Simple GPX Document</name>
-    <trkseg>
-	  ${buffer.map(function (item) {
-	    return `<trkpt lat="${item.lat}" lon="${item.lon}">
-        <ele>${item.ele}</ele>
-		<time>${item.time}</time>
-	  </trkpt>`;
-	  }).join('')}
-    </trkseg>
-  </trk>
-</gpx>`
-
 	// Control implemented as ES5 prototypical class
 	function HelloWorldControl() { }
 
@@ -88,7 +89,7 @@ body { margin: 0; padding: 0; }
 
 		const link = document.createElement('a');
 		link.setAttribute('href', '#');
-		link.addEventListener('click', function() { download("hello.gpx", track); });
+		link.addEventListener('click', function() { download("track.gpx"); });
 		link.innerHTML = "Download<br/>Track";
 		this._container.appendChild(link);
 		return this._container;
