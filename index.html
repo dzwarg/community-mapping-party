@@ -35,9 +35,12 @@ body { margin: 0; padding: 0; }
 	map.addControl(geolocate);
 	const buffer = []
 	geolocate.on('geolocate', function (evt) {
-	  console.log(evt);
-	  evt.time = (new Date()).toUTCString()
-	  buffer.push(evt);
+	    buffer.push({
+			lat:evt.coords.latitude,
+			lon:evt.coords.longitude,
+			ele:evt.coords.altitude || 0,
+			time:(new Date()).toUTCString()
+		});
 	});
 
 	function download(filename, track) {
@@ -67,7 +70,7 @@ body { margin: 0; padding: 0; }
     <trkseg>
 	  ${buffer.map(function (item) {
 	    return `<trkpt lat="${item.lat}" lon="${item.lon}">
-        <ele>0</ele>
+        <ele>${item.ele}</ele>
 		<time>${item.time}</time>
 	  </trkpt>`;
 	  }).join('')}
