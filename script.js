@@ -1,3 +1,12 @@
+const _track = {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+        type: 'LineString',
+        coordinates: []
+    }
+}
+
 /**
  * Welcome splash
  */
@@ -40,8 +49,8 @@ HelpControl.prototype.onRemove = function () {
 /**
  * Custom map control to download the track.
  */
-function TrackControl(history) {
-    this._history = history
+function TrackControl(feature) {
+    this._feature = feature
 }
 
 TrackControl.prototype.downloadListener = function() {
@@ -57,7 +66,7 @@ TrackControl.prototype.downloadListener = function() {
   <trk>
     <name>Simple GPX Document</name>
     <trkseg>
-      ${this._history.map(function (item) {
+      ${this._feature.geometry.coordinates.map(function (item) {
         return `<trkpt lat="${item.lat}" lon="${item.lon}">
         <ele>${item.ele}</ele>
         <time>${item.time}</time>
@@ -70,7 +79,7 @@ TrackControl.prototype.downloadListener = function() {
     var element = document.createElement('a');
     element.setAttribute('href', 'data:application/gpx+xml;charset=utf-8,' + encodeURIComponent(track));
     element.setAttribute('download', 'track.gpx');
-
+I
     element.style.display = 'none';
     document.body.appendChild(element);
 
@@ -122,18 +131,36 @@ const geolocate = new mapboxgl.GeolocateControl({
     // Draw an arrow next to the location dot to indicate which direction the device is heading.
     showUserHeading: true
 });
-geolocate._history = [];
 map.addControl(geolocate);
 
 geolocate.on('geolocate', function (evt) {
-    this._history.push({
-        lat: evt.coords.latitude,
-        lon: evt.coords.longitude,
-        ele: evt.coords.altitude || 0,
-        time: (new Date()).toUTCString()
-    });
-    console.log(`logged ${this._history.length} track points`)
+    _track.geometry.coordinates.push([
+        evt.coords.longitude , evt.coords.latitude 
+    ]);
+    this._map.getSource('track').setData(_track)
+    console.log(`track length: ${_track.geometry.coordinates.length}`)
 });
 
-map.addControl(new TrackControl(geolocate._history));
+map.addControl(new TrackControl(_track));
 map.addControl(new HelpControl(myModal));
+
+map.on('load', () => {
+    map.addSource('track', {
+        'type': 'geojson',
+        'data': _track
+    })
+
+    map.addLayer({
+        id: 'track',
+        type: 'line',
+        source: 'track',
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-color': '#0c0',
+            'line-width': 5
+        }
+    })
+})
