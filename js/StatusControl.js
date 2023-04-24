@@ -1,15 +1,19 @@
 /**
  * Custom map control to show status.
  */
-function StatusControl(message) {
-    this._message = message
+function StatusControl(status) {
+    this._status = status
 }
 
-StatusControl.prototype.setMessage = function(message) {
-    this._message = message
+StatusControl.prototype.formatMessage = function() {
+    return `${this._status['track'] ? '✛' : '❖'} | ⎓ ${this._status['length']}`
+}
 
-    const div = this._container.querySelector('div.mapboxgl-ctrl-attrib-inner')
-    div.innerText = this._message
+StatusControl.prototype.setMessage = function(type, message) {
+    this._status[type] = message;
+
+    const div = this._container.querySelector('div.mapboxgl-ctrl-attrib-inner');
+    div.innerText = this.formatMessage();
 }
 
 StatusControl.prototype.onAdd = function(map) {
@@ -19,7 +23,7 @@ StatusControl.prototype.onAdd = function(map) {
 
     const div = document.createElement('div');
     div.className = 'mapboxgl-ctrl-attrib-inner';
-    div.innerText = this._message;
+    div.innerText = this.formatMessage();
 
     this._container.appendChild(div);
     return this._container;

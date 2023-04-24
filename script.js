@@ -44,7 +44,7 @@ let timeout = null,
         if (wakelock) wakelock.release();
         timeout = null;
 
-        status.setMessage("wake/lock sentinel released")
+        status.setMessage('track', false);
     };
 
 geolocate.on('geolocate', function (evt) {
@@ -55,8 +55,8 @@ geolocate.on('geolocate', function (evt) {
 
         navigator.wakeLock.request("screen")
             .then(function (sentinel) {
-                wakelock = sentinel
-                status.setMessage("wake/lock sentinel active")
+                wakelock = sentinel;
+                status.setMessage('track', true);
             })
             .catch(function (err) {
                 // the wake lock request fails - usually system related, such being low on battery
@@ -76,9 +76,9 @@ geolocate.on('geolocate', function (evt) {
         (new Date(evt.timestamp)).toISOString() // unspecified; time
     ]);
 
-    this._map.getSource('track').setData(_track)
+    this._map.getSource('track').setData(_track);
 
-    status.setMessage(`track length: ${_track.geometry.coordinates.length}`)
+    status.setMessage('length', _track.geometry.coordinates.length);
 });
 
 map.addControl(new TrackControl(_track));
@@ -88,7 +88,7 @@ help.init()
 help.show()
 map.addControl(help);
 
-const status = new StatusControl('idle');
+const status = new StatusControl({track: false, length: 0});
 map.addControl(status);
 
 map.on('load', () => {
