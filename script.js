@@ -1,3 +1,6 @@
+/**
+ * Global feature to store tracks.
+ */
 const _track = {
     type: 'Feature',
     properties: {},
@@ -7,108 +10,9 @@ const _track = {
     }
 }
 
-/**
- * Welcome splash
- */
-const myModal = new bootstrap.Modal('#splash');
-myModal.show();
-
-/**
- * Custom map control to show help.
- */
-function HelpControl(modal) {
-    this._modal = modal;
-}
-
-HelpControl.prototype.helpListener = function () {
-    this._modal.show();
-}
-
-HelpControl.prototype.onAdd = function(map) {
-    this._map = map;
-    this._container = document.createElement('div');
-    this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-
-    const btn = document.createElement('button');
-    btn.className = 'cmp-ctrl-help';
-    btn.addEventListener('click', this.helpListener.bind(this));
-
-    const span = document.createElement('span');
-    span.className = 'mapboxgl-ctrl-icon';
-    btn.appendChild(span);
-
-    this._container.appendChild(btn);
-    return this._container;
-};
-
-HelpControl.prototype.onRemove = function () {
-    this._container.parentNode.removeChild(this._container);
-    this._map = undefined;
-};
-
-/**
- * Custom map control to download the track.
- */
-function TrackControl(feature) {
-    this._feature = feature
-}
-
-TrackControl.prototype.downloadListener = function() {
-    const track = `<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-
-<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" creator="dzwarg/community-mapping-party" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd">
-  <metadata>
-    <link href="http://dzwarg.github.io/community-mapping-party">
-      <text>Community Mapping Party</text>
-    </link>
-    <time>${(new Date()).toUTCString()}</time>
-  </metadata>
-  <trk>
-    <name>Simple GPX Document</name>
-    <trkseg>
-      ${this._feature.geometry.coordinates.map(function (item) {
-        return `<trkpt lat="${item.lat}" lon="${item.lon}">
-        <ele>${item.ele}</ele>
-        <time>${item.time}</time>
-      </trkpt>`;
-      }).join('')}
-    </trkseg>
-  </trk>
-</gpx>`
-
-    var element = document.createElement('a');
-    element.setAttribute('href', 'data:application/gpx+xml;charset=utf-8,' + encodeURIComponent(track));
-    element.setAttribute('download', 'track.gpx');
-I
-    element.style.display = 'none';
-    document.body.appendChild(element);
-
-    element.click();
-
-    document.body.removeChild(element);
-}
-
-TrackControl.prototype.onAdd = function(map) {
-    this._map = map;
-    this._container = document.createElement('div');
-    this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-
-    const btn = document.createElement('button');
-    btn.className = 'cmp-ctrl-track';
-    btn.addEventListener('click', this.downloadListener.bind(this));
-
-    const span = document.createElement('span');
-    span.className = 'mapboxgl-ctrl-icon';
-    btn.appendChild(span);
-
-    this._container.appendChild(btn);
-    return this._container;
-};
-
-TrackControl.prototype.onRemove = function () {
-    this._container.parentNode.removeChild(this._container);
-    this._map = undefined;
-};
+import HelpControl from './js/HelpControl.js'
+import TrackControl from './js/TrackControl.js'
+import StatusControl from './js/StatusControl.js'
 
 /**
  * Map initialization
@@ -116,11 +20,11 @@ TrackControl.prototype.onRemove = function () {
 mapboxgl.accessToken = 'pk.eyJ1IjoiZHp3YXJnMiIsImEiOiJja2VidXkweWwwY2hqMnFvYXZwOG51MDBoIn0.5tG41YFoo3NHZsHYR-12LA';
 const map = new mapboxgl.Map({
     container: 'map', // container ID
-    // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
     style: 'mapbox://styles/dzwarg2/clekuzenb000v01ps32sectby', // style URL
     center: [-70.187361, 43.802546], // starting position [lng, lat]
     zoom: 16 // starting zoom
 });
+
 // Add geolocate control to the map.
 const geolocate = new mapboxgl.GeolocateControl({
     positionOptions: {
@@ -133,16 +37,59 @@ const geolocate = new mapboxgl.GeolocateControl({
 });
 map.addControl(geolocate);
 
+// Required global resources for wake/lock
+let timeout = null,
+    wakelock = null,
+    release = function () {
+        if (wakelock) wakelock.release();
+        timeout = null;
+
+        status.setMessage("wake/lock sentinel released")
+    };
+
 geolocate.on('geolocate', function (evt) {
+    // this timeout and wakelock are used inside of the geolocate event, since we can't detect
+    // when a user turns on or off geolocation, except that geolocate events are happening.
+    if (!timeout) {
+        timeout = setTimeout(release, 5000)
+
+        navigator.wakeLock.request("screen")
+            .then(function (sentinel) {
+                wakelock = sentinel
+                status.setMessage("wake/lock sentinel active")
+            })
+            .catch(function (err) {
+                // the wake lock request fails - usually system related, such being low on battery
+                console.log(`${err.name}, ${err.message}`);
+            })
+    } else {
+        // renew timeout
+        clearTimeout(timeout)
+        timeout = setTimeout(release, 5000)
+    }
+
+    // store the geolocated point
     _track.geometry.coordinates.push([
-        evt.coords.longitude , evt.coords.latitude 
+        evt.coords.longitude, // X
+        evt.coords.latitude,  // Y
+        evt.coords.altitude,  // Z
+        (new Date(evt.timestamp)).toISOString() // unspecified; time
     ]);
+
     this._map.getSource('track').setData(_track)
-    console.log(`track length: ${_track.geometry.coordinates.length}`)
+
+    status.setMessage(`track length: ${_track.geometry.coordinates.length}`)
 });
 
 map.addControl(new TrackControl(_track));
-map.addControl(new HelpControl(myModal));
+
+const help = new HelpControl();
+help.init()
+help.show()
+map.addControl(help);
+
+const status = new StatusControl('idle');
+map.addControl(status);
 
 map.on('load', () => {
     map.addSource('track', {
