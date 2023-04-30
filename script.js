@@ -43,7 +43,7 @@ const randomColor = function() {
         cmps.r = randByte()
         cmps.b = randByte()
     }
-    return `rgb(${cmps.r},${cmps.g},${cmps.b}`
+    return `rgb(${cmps.r},${cmps.g},${cmps.b})`
 }
 
 /**
@@ -144,13 +144,16 @@ map.on('load', () => {
 
     const geolocateElem = document.getElementsByClassName('mapboxgl-ctrl-geolocate')[0]
     geolocateElem.addEventListener('click', function (evt) {
-        if (_addTrack) {
+        const pressed = evt.target.parentNode.ariaPressed === 'true'
+        if (pressed & _addTrack) {
+            console.log('created new track')
             const newFeature = Object.assign({}, _featureTemplate)
             newFeature.properties['line-color'] = randomColor()
             _track.features.push(newFeature)
+            _addTrack = false
+        } else if (!pressed) {
+            _addTrack = true
         }
-
-        _addTrack = !_addTrack
     })
 
 })
