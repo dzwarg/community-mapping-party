@@ -2,7 +2,7 @@
  * Custom map control to show help.
  */
 function HelpControl() {
-    this._modal = null
+    this._modal = new bootstrap.Modal('#splash')
 }
 
 /**
@@ -10,10 +10,6 @@ function HelpControl() {
  */
 HelpControl.prototype.show = function () {
     this._modal.show();
-}
-
-HelpControl.prototype.init = function() {
-    this._modal = new bootstrap.Modal('#splash');
 }
 
 HelpControl.prototype.onAdd = function(map) {

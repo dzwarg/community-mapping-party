@@ -1,8 +1,8 @@
 /**
  * Custom map control to download the track.
  */
-function TrackControl(feature) {
-    this._feature = feature
+function TrackControl(featureCollection) {
+    this._featureCollection = featureCollection
 }
 
 /**
@@ -20,14 +20,16 @@ TrackControl.prototype.downloadListener = function() {
   </metadata>
   <trk>
     <name>Simple GPX Document</name>
-    <trkseg>
-      ${this._feature.geometry.coordinates.map(function (item) {
-        return `<trkpt lat="${item[1]}" lon="${item[0]}">
-        <ele>${item[2]}</ele>
-        <time>${item[3]}</time>
-      </trkpt>`;
-      }).join('')}
-    </trkseg>
+    ${this._featureCollection.features.map(function(feature) {
+        return `<trkseg>
+        ${feature.geometry.coordinates.map(function (item) {
+          return `<trkpt lat="${item[1]}" lon="${item[0]}">
+          <ele>${item[2]}</ele>
+          <time>${item[3]}</time>
+        </trkpt>`;
+        }).join('\n')}
+      </trkseg>`
+    }).join('\n')}
   </trk>
 </gpx>`
 

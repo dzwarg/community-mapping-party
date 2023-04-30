@@ -1,18 +1,50 @@
+import HelpControl from './js/HelpControl.js'
+import TrackControl from './js/TrackControl.js'
+import StatusControl from './js/StatusControl.js'
+
 /**
  * Global feature to store tracks.
  */
 const _track = {
+    type: 'FeatureCollection',
+    features: []
+}
+const _featureTemplate = {
     type: 'Feature',
-    properties: {},
+    properties: {
+        'line-color': '#000'
+    },
     geometry: {
         type: 'LineString',
         coordinates: []
     }
 }
-
-import HelpControl from './js/HelpControl.js'
-import TrackControl from './js/TrackControl.js'
-import StatusControl from './js/StatusControl.js'
+let _addTrack = true
+const randomColor = function() {
+    const ish = Math.random()
+    const randByte = () => Math.round(((Math.random() * 55) + 200))
+    const cmps = {r:0,g:0,b:0}
+    if (ish < 1/12) {
+        cmps.b = randByte()
+        cmps.r = randByte()
+    } else if (ish < 3/12) {
+        cmps.r = randByte()
+    } else if (ish < 5/12) {
+        cmps.g = randByte()
+        cmps.r = randByte()
+    } else if (ish < 7/12) {
+        cmps.g = randByte()
+    } else if (ish < 9/12) {
+        cmps.g = randByte()
+        cmps.b = randByte()
+    } else if (ish < 11/12) {
+        cmps.b = randByte()
+    } else {
+        cmps.r = randByte()
+        cmps.b = randByte()
+    }
+    return `rgb(${cmps.r},${cmps.g},${cmps.b}`
+}
 
 /**
  * Map initialization
@@ -69,7 +101,7 @@ geolocate.on('geolocate', function (evt) {
     }
 
     // store the geolocated point
-    _track.geometry.coordinates.push([
+    _track.features[_track.features.length-1].geometry.coordinates.push([
         evt.coords.longitude, // X
         evt.coords.latitude,  // Y
         evt.coords.altitude,  // Z
@@ -78,13 +110,12 @@ geolocate.on('geolocate', function (evt) {
 
     this._map.getSource('track').setData(_track);
 
-    status.setMessage('length', _track.geometry.coordinates.length);
+    status.setMessage('length', _track.features[_track.features.length-1].geometry.coordinates.length);
 });
 
 map.addControl(new TrackControl(_track));
 
 const help = new HelpControl();
-help.init()
 help.show()
 map.addControl(help);
 
@@ -106,8 +137,20 @@ map.on('load', () => {
             'line-cap': 'round'
         },
         paint: {
-            'line-color': '#0c0',
+            'line-color': ['get', 'line-color'],
             'line-width': 5
         }
     })
+
+    const geolocateElem = document.getElementsByClassName('mapboxgl-ctrl-geolocate')[0]
+    geolocateElem.addEventListener('click', function (evt) {
+        if (_addTrack) {
+            const newFeature = Object.assign({}, _featureTemplate)
+            newFeature.properties['line-color'] = randomColor()
+            _track.features.push(newFeature)
+        }
+
+        _addTrack = !_addTrack
+    })
+
 })
