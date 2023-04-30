@@ -9,17 +9,19 @@ const _track = {
     type: 'FeatureCollection',
     features: []
 }
-const _featureTemplate = {
-    type: 'Feature',
-    properties: {
-        'line-color': '#000'
-    },
-    geometry: {
-        type: 'LineString',
-        coordinates: []
+let _addTrack = true
+const createFeature = function(lineColor) {
+    return {
+        type: 'Feature',
+        properties: {
+            'line-color': lineColor
+        },
+        geometry: {
+            type: 'LineString',
+            coordinates: []
+        }
     }
 }
-let _addTrack = true
 const randomColor = function() {
     const ish = Math.random()
     const randByte = () => Math.round(((Math.random() * 55) + 200))
@@ -146,9 +148,7 @@ map.on('load', () => {
     geolocateElem.addEventListener('click', function (evt) {
         const pressed = evt.target.parentNode.ariaPressed === 'true'
         if (pressed & _addTrack) {
-            console.log('created new track')
-            const newFeature = Object.assign({}, _featureTemplate)
-            newFeature.properties['line-color'] = randomColor()
+            const newFeature = createFeature(randomColor())
             _track.features.push(newFeature)
             _addTrack = false
         } else if (!pressed) {
